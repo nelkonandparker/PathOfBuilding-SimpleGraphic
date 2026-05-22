@@ -18,7 +18,7 @@ class core_main_c: public core_IMain {
 public:
 	// Interface
 	void	Init(int argc, char** argv);
-	void	Frame();
+	bool	Frame();
 	void	Shutdown();
 	void	KeyEvent(int key, int type);
 	bool	CanExit();
@@ -71,13 +71,13 @@ void core_main_c::Init(int argc, char** argv)
 	initialised = true;
 }
 
-void core_main_c::Frame()
+bool core_main_c::Frame()
 {
 	// Execute commands
 	sys->con->ExecCommands();
 
 	// Run UI
-	ui->Frame();
+	return ui->Frame();
 }
 
 void core_main_c::Shutdown()

@@ -12,6 +12,8 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
+#include <thread>
 #include <filesystem>
 #include <fmt/chrono.h>
 #include <future>
@@ -1261,7 +1263,7 @@ static std::string BinaryUnitPrefix(uint64_t quantity) {
 	return fmt::format("{:0.2f} Pi", quantity / 1024.0 / 1024.0 / 1024.0 / 1024.0 / 1024.0);
 }
 
-void r_renderer_c::EndFrame()
+bool r_renderer_c::EndFrame()
 {
 	inhibitElision = false;
 	PumpShaders();
@@ -1466,7 +1468,13 @@ void r_renderer_c::EndFrame()
 	}
 	delete[] layerSort;
 
-	{
+	// On an elided frame the screen already shows an identical image, so skip
+	// the RTT->screen blit and the present below -- no GPU work while idle.
+	// Debug ImGui overlays aren't covered by the elision hash, so force a
+	// present whenever one is on screen.
+	bool const present = !elideDraw || debugLayers || debugImGui || showHash || showTiming;
+
+	if (present) {
 		auto& rtt = GetPresentRenderTarget();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1529,10 +1537,12 @@ void r_renderer_c::EndFrame()
 	}
 
 	ImGui::Render();
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+	if (present) {
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-	// Swap output buffers
-	openGL->Swap();
+		// Swap output buffers
+		openGL->Swap();
+	}
 
 	// Take screenshot
 	switch (takeScreenshot) {
@@ -1558,6 +1568,10 @@ void r_renderer_c::EndFrame()
 	takeScreenshot = R_SSNONE;
 
 	PurgeShaders();
+
+	// Tell the caller whether this frame was byte-identical to the last one
+	// (drawing skipped) so the main loop can idle instead of busy-spinning.
+	return elideDraw;
 }
 
 // =================
@@ -1640,7 +1654,7 @@ void r_renderer_c::GetShaderImageSize(r_shaderHnd_c* hnd, int& width, int& heigh
 	if (hnd)
 	{
 		while (hnd->sh->tex->status < r_tex_c::SIZE_KNOWN) {
-			Sleep(1);
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
 		width = hnd->sh->tex->fileWidth;
 		height = hnd->sh->tex->fileHeight;

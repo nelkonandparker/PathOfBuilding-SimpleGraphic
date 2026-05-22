@@ -670,9 +670,19 @@ bool sys_main_c::Run(int argc, char** argv)
 		core->Init(argc, argv);
 
 		// Run frame loop
+		bool frameElided = false;
+		int idleStreak = 0;
 		while (exitFlag == false) {
+			// Idle the loop when frames are byte-identical (and no background
+			// work is pending) instead of busy-spinning at 60 fps. The longer
+			// the UI stays static, the longer we sleep between checks (up to
+			// 0.5s) -- any input still wakes glfwWaitEventsTimeout instantly.
 			if (minimized) {
 				glfwWaitEventsTimeout(0.1);
+			}
+			else if (frameElided) {
+				double const timeout = 0.1 * idleStreak;
+				glfwWaitEventsTimeout(timeout > 0.5 ? 0.5 : timeout);
 			}
 			else {
 				glfwPollEvents();
@@ -682,7 +692,8 @@ bool sys_main_c::Run(int argc, char** argv)
 				Exit();
 				break;
 			}
-			core->Frame();
+			frameElided = core->Frame();
+			idleStreak = frameElided ? idleStreak + 1 : 0;
 
 			if (threadError) {
 				Error(threadError);

@@ -26,6 +26,7 @@
 // Modified for standalone inclusion in SimpleGraphic.
 
 #include <stdbool.h>
+#include <stddef.h> // size_t
 
 #ifdef __cplusplus
 extern "C" {

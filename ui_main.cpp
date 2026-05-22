@@ -368,10 +368,11 @@ void ui_main_c::ScriptInit()
 	}
 }
 
-void ui_main_c::Frame()
+bool ui_main_c::Frame()
 {
 	// Check for any subscripts we need to run
 	bool hasSubscript = false;
+	bool elided = false;
 	for (dword i = 0; i < subScriptSize; i++) {
 		if (subScriptList[i]) {
 			hasSubscript = true;
@@ -388,8 +389,8 @@ void ui_main_c::Frame()
 	// Otherwise only runs frames if the mouse is on screen, there is an active coroutine, or there is an active subscript
 	else if (!sys->video->IsActive() && !sys->video->IsCursorOverWindow() && !hasActiveCoroutine && !hasSubscript) {
 		sys->Sleep(100);
-		return;
-	}	
+		return false;
+	}
 	
 	if (renderer) {
 		// Prepare for rendering
@@ -428,7 +429,7 @@ void ui_main_c::Frame()
 
 		// Finish up
 		//sys->con->Printf("EndFrame...\n");
-		renderer->EndFrame();
+		elided = renderer->EndFrame();
 	}
 
 	//sys->con->Printf("Finishing up...\n");
@@ -443,6 +444,10 @@ void ui_main_c::Frame()
 		}
 		ScriptInit();
 	}
+
+	// Let the main loop idle only when the frame was elided AND no background
+	// work is pending -- coroutines/subscripts must keep running at full speed.
+	return elided && !hasActiveCoroutine && !hasSubscript;
 }
 
 void ui_main_c::ScriptShutdown()

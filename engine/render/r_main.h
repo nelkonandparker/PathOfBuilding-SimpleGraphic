@@ -71,7 +71,7 @@ public:
 	void	Shutdown();
 
 	void	BeginFrame();
-	void	EndFrame();
+	bool	EndFrame();
 	
 	r_shaderHnd_c* RegisterShader(std::string_view shname, int flags);
 	r_shaderHnd_c* RegisterShaderFromImage(std::unique_ptr<image_c> img, int flags);

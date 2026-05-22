@@ -437,6 +437,11 @@ char* NarrowUTF8String(const wchar_t* str)
 	return NarrowCodepageString(str, CP_UTF8);
 }
 
+#endif // _WIN32 -- the codepage helpers above use Win32 MultiByteToWideChar
+
+// Portable: pure UTF-8 decoding, no platform APIs. Must be defined on every
+// platform -- it is declared unconditionally in common.h and used by the
+// renderer / font code.
 IndexedUTF32String IndexUTF8ToUTF32(std::string_view input)
 {
 	IndexedUTF32String ret{};
@@ -500,5 +505,3 @@ IndexedUTF32String IndexUTF8ToUTF32(std::string_view input)
 	ret.text = std::u32string(codepoints.begin(), codepoints.end());
 	return ret;
 }
-
-#endif

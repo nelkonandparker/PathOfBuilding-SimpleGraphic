@@ -79,7 +79,7 @@ public:
 	virtual void	Shutdown() = 0;
 
 	virtual void	BeginFrame() = 0;
-	virtual void	EndFrame() = 0;
+	virtual bool	EndFrame() = 0;
 	
 	virtual r_shaderHnd_c* RegisterShader(std::string_view name, int flags) = 0;
 	virtual r_shaderHnd_c* RegisterShaderFromImage(std::unique_ptr<image_c> img, int flags) = 0;

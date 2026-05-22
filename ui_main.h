@@ -15,7 +15,7 @@ class ui_main_c: public ui_IMain {
 public:
 	// Interface
 	void	Init(int argc, char** argv);
-	void	Frame();
+	bool	Frame();
 	void	Shutdown();
 	void	KeyEvent(int key, int type);
 	bool	CanExit();

@@ -76,20 +76,22 @@ set(SIMPLEGRAPHIC_SOURCES
     "ui_subscript.h"
 )
 
+# Accumulate with list(APPEND): on APPLE both sys_macos.mm AND the unix console
+# are needed. A plain set() in the WIN32/else block would clobber sys_macos.mm.
 set (SIMPLEGRAPHIC_PLATFORM_SOURCES)
 if (APPLE)
-    set (SIMPLEGRAPHIC_PLATFORM_SOURCES
+    list (APPEND SIMPLEGRAPHIC_PLATFORM_SOURCES
         "engine/system/win/sys_macos.mm"
     )
 endif()
 
 if (WIN32)
-    set (SIMPLEGRAPHIC_PLATFORM_SOURCES
+    list (APPEND SIMPLEGRAPHIC_PLATFORM_SOURCES
         "engine/system/win/sys_console.cpp"
         "SimpleGraphic.rc"
     )
 else()
-    set (SIMPLEGRAPHIC_PLATFORM_SOURCES
+    list (APPEND SIMPLEGRAPHIC_PLATFORM_SOURCES
         "engine/system/win/sys_console_unix.cpp"
     )
 endif()
@@ -130,6 +132,14 @@ find_package(Threads REQUIRED)
 find_package(zstd REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(WebP)
+
+# vcpkg's zstd exports zstd::libzstd_shared or zstd::libzstd_static depending
+# on the triplet's library linkage (shared on Windows, static on macOS/Linux).
+if (TARGET zstd::libzstd_shared)
+    set(ZSTD_LIBRARY zstd::libzstd_shared)
+else ()
+    set(ZSTD_LIBRARY zstd::libzstd_static)
+endif ()
 
 add_library(cmp_core STATIC
     dep/compressonator/cmp_core/source/cmp_core.cpp
@@ -240,7 +250,7 @@ target_link_libraries(SimpleGraphic
     Threads::Threads
     WebP::webpdecoder
     ZLIB::ZLIB
-    zstd::libzstd_shared
+    ${ZSTD_LIBRARY}
 )
 
 install(FILES $<TARGET_RUNTIME_DLLS:SimpleGraphic> DESTINATION ".")
@@ -301,10 +311,15 @@ install(FILES $<TARGET_RUNTIME_DLLS:lcurl> DESTINATION ".")
 
 add_library(lua-utf8 SHARED libs/luautf8/lutf8lib.c)
 
-target_compile_definitions(lua-utf8
-    PRIVATE
-    LUA_BUILD_AS_DLL
-)
+# LUA_BUILD_AS_DLL makes LuaJIT's headers use __declspec(dllexport), which is
+# Windows-only. On macOS/Linux the luaopen_ entry point is exported via default
+# visibility and __declspec is rejected by clang.
+if (WIN32)
+    target_compile_definitions(lua-utf8
+        PRIVATE
+        LUA_BUILD_AS_DLL
+    )
+endif ()
 
 target_include_directories(lua-utf8
     PRIVATE
@@ -320,6 +335,13 @@ install(FILES $<TARGET_RUNTIME_DLLS:lua-utf8> DESTINATION ".")
 
 # luasocket module
 
+# wsocket.c is the Win32 socket backend; usocket.c is the POSIX one.
+if (WIN32)
+    set(LUASOCKET_PLATFORM_SRC "libs/luasocket/src/wsocket.c")
+else ()
+    set(LUASOCKET_PLATFORM_SRC "libs/luasocket/src/usocket.c")
+endif ()
+
 add_library(luasocket SHARED
    "libs/luasocket/src/auxiliar.c"
    "libs/luasocket/src/buffer.c"
@@ -333,7 +355,7 @@ add_library(luasocket SHARED
    "libs/luasocket/src/tcp.c"
    "libs/luasocket/src/timeout.c"
    "libs/luasocket/src/udp.c"
-   "libs/luasocket/src/wsocket.c"
+   "${LUASOCKET_PLATFORM_SRC}"
 )
 
 target_include_directories(luasocket
@@ -344,9 +366,12 @@ target_include_directories(luasocket
 target_link_libraries(luasocket
     PRIVATE
     LuaJIT::LuaJIT
-    wsock32
-    ws2_32
 )
+
+# wsock32/ws2_32 are the Windows socket libraries; POSIX sockets are in libc.
+if (WIN32)
+    target_link_libraries(luasocket PRIVATE wsock32 ws2_32)
+endif ()
 
 set_target_properties( luasocket PROPERTIES OUTPUT_NAME "socket" ) 
 install(TARGETS luasocket RUNTIME DESTINATION ".")

@@ -18,7 +18,7 @@ public:
 	core_IVideo*	video = nullptr;
 
 	virtual void	Init(int argc, char** argv) = 0;
-	virtual void	Frame() = 0;
+	virtual bool	Frame() = 0;
 	virtual void	Shutdown() = 0;
 	virtual void	KeyEvent(int key, int type) = 0;
 	virtual bool	CanExit() = 0;

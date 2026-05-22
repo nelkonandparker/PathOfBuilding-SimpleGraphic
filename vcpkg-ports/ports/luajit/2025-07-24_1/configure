@@ -33,6 +33,11 @@ COMMON_OPTIONS += 'E=@:' 'Q='
 COMMON_OPTIONS += 'BUILDMODE=${LUAJIT_BUILDMODE}'
 COMMON_OPTIONS += 'PREFIX=${LUAJIT_PREFIX}'
 COMMON_OPTIONS += 'INSTALL_TNAME=luajit'
+# INSTALL_TNAME above makes bin/luajit the real binary; LuaJIT's Makefile then
+# unconditionally does `ln -sf $(INSTALL_TNAME) $(INSTALL_TSYM)`. With the
+# default INSTALL_TSYMNAME=luajit that self-links and destroys the binary, so
+# point the symlink at a distinct (throwaway) name instead.
+COMMON_OPTIONS += 'INSTALL_TSYMNAME=luajit-symlink'
 
 BUILD_OPTIONS += 'CC=${CC}'
 BUILD_OPTIONS += 'CCDEBUG='
