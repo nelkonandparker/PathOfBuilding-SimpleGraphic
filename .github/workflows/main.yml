@@ -1,9 +1,6 @@
 name: Build DLL
-on: 
-  push:
-  pull_request:
-  release:
-      types: [published]
+on:
+  workflow_dispatch:
 jobs:
   build_dll:
     strategy:
