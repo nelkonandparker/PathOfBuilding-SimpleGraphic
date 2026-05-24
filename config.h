@@ -4,7 +4,7 @@
 // Configuration
 //
 
-#define CFG_VERSION_NUM "2.5"
+#define CFG_VERSION_NUM "2.5.1-test"
 #define CFG_VERSION		"SimpleGraphic v" CFG_VERSION_NUM
 #define CFG_TITLE		"SimpleGraphic"
 #define CFG_LOGFILE		"SimpleGraphic/SimpleGraphic.log"
